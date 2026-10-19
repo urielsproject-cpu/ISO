@@ -1,0 +1,144 @@
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+
+# Configuración de página
+st.set_page_config(
+    page_title="Dashboard de Cumplimiento Normativo",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Datos iniciales para ISO 9001:2026 e ISO 27001:2022
+INITIAL_DATA = [
+    # ISO 9001:2026 (Gestión de la Calidad)
+    {"Norma": "ISO 9001:2026", "Cláusula": "4.1 Contexto de la organización", "Control / Requisito": "Comprensión del contexto interno/externo y partes interesadas", "Responsable": "Calidad", "Estado": "Cumple", "Avance (%)": 100, "Evidencia": "Matriz FODA y partes interesadas 2026"},
+    {"Norma": "ISO 9001:2026", "Cláusula": "5.2 Política de la calidad", "Control / Requisito": "Alineación de la política con el propósito estratégico", "Responsable": "Dirección", "Estado": "Cumple", "Avance (%)": 100, "Evidencia": "Manual de Calidad rev. 4"},
+    {"Norma": "ISO 9001:2026", "Cláusula": "6.1 Riesgos y oportunidades", "Control / Requisito": "Gestión de riesgos operativos, tecnológicos y de calidad", "Responsable": "Calidad", "Estado": "En Proceso", "Avance (%)": 60, "Evidencia": "Matriz de riesgos en actualización"},
+    {"Norma": "ISO 9001:2026", "Cláusula": "7.1 Recursos e infraestructura", "Control / Requisito": "Disponibilidad de infraestructura física, digital y humana", "Responsable": "Operaciones", "Estado": "En Proceso", "Avance (%)": 75, "Evidencia": "Plan anual de mantenimiento y licencias"},
+    {"Norma": "ISO 9001:2026", "Cláusula": "8.4 Control de procesos externos", "Control / Requisito": "Evaluación periódica de proveedores críticos", "Responsable": "Compras", "Estado": "No Cumple", "Avance (%)": 20, "Evidencia": "Pendiente homologación de proveedores"},
+    {"Norma": "ISO 9001:2026", "Cláusula": "9.2 Auditoría interna", "Control / Requisito": "Programa y ejecución de auditorías periódicas", "Responsable": "Auditoría", "Estado": "En Proceso", "Avance (%)": 50, "Evidencia": "Cronograma de auditorías Q3"},
+    {"Norma": "ISO 9001:2026", "Cláusula": "10.2 No conformidad y acción correctiva", "Control / Requisito": "Tratamiento sistemático de desvíos y lecciones aprendidas", "Responsable": "Calidad", "Estado": "Cumple", "Avance (%)": 100, "Evidencia": "Bitácora de CAPA en software corporativo"},
+
+    # ISO 27001:2022 (Seguridad de la Información)
+    {"Norma": "ISO 27001:2022", "Cláusula": "A.5.1 Políticas de seguridad", "Control / Requisito": "Conjunto de políticas aprobadas y comunicadas", "Responsable": "CISO", "Estado": "Cumple", "Avance (%)": 100, "Evidencia": "Política General de Seguridad v3.0"},
+    {"Norma": "ISO 27001:2022", "Cláusula": "A.5.23 Seguridad en servicios cloud", "Control / Requisito": "Gestión de controles y responsabilidades compartidas en la nube", "Responsable": "Infraestructura", "Estado": "En Proceso", "Avance (%)": 70, "Evidencia": "Evaluación de configuración AWS / Azure"},
+    {"Norma": "ISO 27001:2022", "Cláusula": "A.5.7 Inteligencia sobre amenazas", "Control / Requisito": "Recopilación y análisis de fuentes de ciberamenazas (Threat Intel)", "Responsable": "SOC", "Estado": "En Proceso", "Avance (%)": 40, "Evidencia": "Suscripción activa a feeds MITRE/ISAC"},
+    {"Norma": "ISO 27001:2022", "Cláusula": "A.8.8 Gestión de vulnerabilidades", "Control / Requisito": "Escaneo, priorización y parcheo de vulnerabilidades técnicas", "Responsable": "Seguridad TI", "Estado": "Cumple", "Avance (%)": 95, "Evidencia": "Reportes mensuales de escáner Nessus"},
+    {"Norma": "ISO 27001:2022", "Cláusula": "A.8.9 Gestión de configuración", "Control / Requisito": "Líneas base de configuración segura y endurecimiento (hardening)", "Responsable": "Sistemas", "Estado": "No Cumple", "Avance (%)": 15, "Evidencia": "Templates de CIS Benchmarks en borrador"},
+    {"Norma": "ISO 27001:2022", "Cláusula": "A.8.12 Prevención de fuga de datos", "Control / Requisito": "Implementación y ajuste de políticas DLP en endpoints y red", "Responsable": "Seguridad TI", "Estado": "En Proceso", "Avance (%)": 55, "Evidencia": "Pruebas piloto en departamento financiero"},
+    {"Norma": "ISO 27001:2022", "Cláusula": "A.8.28 Codificación segura", "Control / Requisito": "Prácticas de seguridad aplicadas al ciclo de desarrollo de software", "Responsable": "DevOps", "Estado": "En Proceso", "Avance (%)": 65, "Evidencia": "Análisis estático SAST integrado en CI/CD"}
+]
+
+# Inicializar sesión persistente
+if "df_compliance" not in st.session_state:
+    st.session_state.df_compliance = pd.DataFrame(INITIAL_DATA)
+
+# Barra lateral: Filtros y Acciones
+st.sidebar.title("Configuración")
+filtro_norma = st.sidebar.multiselect(
+    "Filtrar por Norma:",
+    options=["ISO 9001:2026", "ISO 27001:2022"],
+    default=["ISO 9001:2026", "ISO 27001:2022"]
+)
+
+# Botón para restaurar datos originales
+if st.sidebar.button("Restaurar Datos por Defecto"):
+    st.session_state.df_compliance = pd.DataFrame(INITIAL_DATA)
+    st.rerun()
+
+# Filtrar vista
+df_actual = st.session_state.df_compliance
+df_filtrado = df_actual[df_actual["Norma"].isin(filtro_norma)]
+
+# Encabezado principal
+st.title("Panel de Control: Cumplimiento ISO 9001:2026 & ISO 27001:2022")
+st.markdown("Edita directamente las celdas de la tabla para ver reflejados los cambios en las métricas y gráficos.")
+
+# Métricas superiores
+col1, col2, col3, col4 = st.columns(4)
+
+total_requisitos = len(df_filtrado)
+cumplen = len(df_filtrado[df_filtrado["Estado"] == "Cumple"])
+en_proceso = len(df_filtrado[df_filtrado["Estado"] == "En Proceso"])
+promedio_avance = df_filtrado["Avance (%)"].mean() if total_requisitos > 0 else 0
+
+col1.metric("Total Requisitos Filtrados", total_requisitos)
+col2.metric("Cumplidos al 100%", cumplen)
+col3.metric("En Implementación", en_proceso)
+col4.metric("Avance Global Promedio", f"{promedio_avance:.1f}%")
+
+st.divider()
+
+# Gráficos dinámicos
+g1, g2 = st.columns(2)
+
+with g1:
+    st.subheader("Distribución por Estado")
+    if total_requisitos > 0:
+        fig_pie = px.pie(
+            df_filtrado,
+            names="Estado",
+            color="Estado",
+            color_discrete_map={"Cumple": "#2ECC71", "En Proceso": "#F39C12", "No Cumple": "#E74C3C"},
+            hole=0.45
+        )
+        fig_pie.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=300)
+        st.plotly_chart(fig_pie, use_container_width=True)
+    else:
+        st.info("Sin datos para mostrar.")
+
+with g2:
+    st.subheader("Avance (%) por Cláusula")
+    if total_requisitos > 0:
+        fig_bar = px.bar(
+            df_filtrado,
+            x="Avance (%)",
+            y="Cláusula",
+            color="Norma",
+            orientation="h",
+            color_discrete_map={"ISO 9001:2026": "#2980B9", "ISO 27001:2022": "#8E44AD"},
+            range_x=[0, 100]
+        )
+        fig_bar.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=300, yaxis={'categoryorder':'total ascending'})
+        st.plotly_chart(fig_bar, use_container_width=True)
+    else:
+        st.info("Sin datos para mostrar.")
+
+st.divider()
+
+# Tabla interactiva editable
+st.subheader("Matriz de Cumplimiento (Editable)")
+st.caption("Puedes añadir filas al final, cambiar valores en desplegables o escribir nuevas evidencias.")
+
+column_config = {
+    "Norma": st.column_config.SelectboxColumn("Norma", options=["ISO 9001:2026", "ISO 27001:2022"], required=True),
+    "Cláusula": st.column_config.TextColumn("Cláusula / Control", required=True),
+    "Control / Requisito": st.column_config.TextColumn("Descripción del Requisito", width="large"),
+    "Responsable": st.column_config.TextColumn("Responsable"),
+    "Estado": st.column_config.SelectboxColumn("Estado", options=["Cumple", "En Proceso", "No Cumple"], required=True),
+    "Avance (%)": st.column_config.ProgressColumn("Avance (%)", min_value=0, max_value=100, format="%d%%"),
+    "Evidencia": st.column_config.TextColumn("Evidencia / Documentación", width="large")
+}
+
+df_editado = st.data_editor(
+    df_filtrado,
+    column_config=column_config,
+    num_rows="dynamic",
+    use_container_width=True,
+    hide_index=True
+)
+
+# Sincronizar cambios de vuelta al estado global si se edita
+if not df_editado.equals(df_filtrado):
+    st.session_state.df_compliance.update(df_editado)
+    st.rerun()
+
+# Exportación a CSV
+csv_data = df_editado.to_csv(index=False).encode('utf-8')
+st.download_button(
+    label="Descargar Matriz Actualizada (CSV)",
+    data=csv_data,
+    file_name="cumplimiento_iso_9001_27001.csv",
+    mime="text/csv"
+)
